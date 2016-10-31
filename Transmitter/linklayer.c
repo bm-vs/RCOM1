@@ -2,13 +2,14 @@
 
 #include "linklayer.h"
 
-int llopen(int nserial, struct termios *oldtio)
+volatile int STOP=FALSE;
+int count = 0, flag = 0;
+
+int llopen(char *nserial, struct termios *oldtio)
 {
     int fd, c, res;
     struct termios newtio;
     int i, sum = 0, speed = 0;
-    
-    
     
     fd = open(nserial, O_RDWR | O_NOCTTY );
     if (fd <0) {perror(nserial); exit(-1); }
@@ -37,5 +38,177 @@ int llopen(int nserial, struct termios *oldtio)
       exit(-1);
     }
 
+
+    // Send SET and wait for UA
+    (void) signal(SIGALRM, answer); 
+    char packet[255];
+    int packet_size = 5;
+
+    createControlPacket(packet, "SET");
+
+    while(count < 3) {
+	write(fd, packet, packet_size);
+	flag = 0;
+	alarm(3);
+
+	// receive
+	if (readPacket(fd) == 0) {
+		break;
+	}
+    }
+
+    if (count == 3) {
+         return -1;	
+    }
+
     return fd;
+}
+
+
+int llwrite(int fd) {
+	
+
+
+
+
+
+}
+
+
+
+
+int llclose(int fd, struct termios *oldtio) {
+	// Send DISC and wait for DISC
+	(void) signal(SIGALRM, answer); 
+	char packet[255];
+	int packet_size = 5;
+
+
+	createControlPacket(packet, "DISC");
+
+	while(count < 3) {
+		write(fd, packet, packet_size);
+		flag = 0;
+		alarm(3);
+
+		// receive
+		if (readPacket(fd) == 0) {
+			break;
+		}
+	}
+
+	// Connection timeout
+	if (count == 3) {
+		if (tcsetattr(fd,TCSANOW, oldtio) == -1) {
+		perror("tcsetattr");
+		exit(-1);
+		}
+	
+	    	close(fd);
+
+		return -1;	
+	}
+	// Send UA and close
+	else {
+		createControlPacket(packet, "UA");
+		write(fd, packet, packet_size);
+	
+		if (tcsetattr(fd,TCSANOW, oldtio) == -1) {
+		perror("tcsetattr");
+		exit(-1);
+		}
+	
+	    	close(fd);
+
+		return 0;
+	}
+}
+
+
+//===================================================================================================
+// Auxiliar
+
+void createControlPacket(char* packet, char* type) {
+	packet[0] = FLAG;
+	packet[1] = TXSTART;
+
+	if (!strcmp(type, "SET")) {
+		packet[2] = SETUP;
+	}
+	else if (!strcmp(type, "UA")) {
+		packet[2] = UNACK;
+	}
+	else if (!strcmp(type, "DISC")) {
+		packet[2] = DISC;
+	}
+
+	packet[3] = packet[1]^packet[2];
+	packet[4] = FLAG;
+}
+
+
+int readPacket(int fd){ 
+    unsigned char buf[255];
+	unsigned char pack[5];
+	int res,i,j;
+	res = 0;
+
+	while(STOP == FALSE && !flag) {
+		res = read(fd,buf,1);
+		if(res == 1) {
+			i=0;
+
+			while(buf[0] != 0x7E) {
+				res = read(fd,buf,1);
+				if(res != 1) {
+					return -1;			
+				}
+			}
+
+			pack[i] = buf[0];
+			i++;
+			res = read(fd,buf,1);
+
+			if(res == 1) {
+				int j;
+				j = 0;
+
+				while(buf[0] != 0x7E) {
+					pack[i] = buf[0];
+					i++;			
+					j++;
+					if(j==3)
+						break;
+					if((res=read(fd,buf,1)) != 1) {
+						return -1;}
+					}
+				
+					if(pack[3] == pack[1]^pack[2]) {
+						read(fd,buf,1);
+						if(res == 1){
+							while(buf[0] != 0x7E) {
+								if((res=read(fd,buf,1)) != 1) {
+									return -1;
+								}
+							}
+		
+							pack[i] = buf[0];			
+							STOP = TRUE; 
+							return 0;
+					}					
+				}
+			}											
+		}
+	}
+
+	return -1;
+}
+
+
+
+
+void answer() {
+	flag = 1;
+	count++;
+	printf("Alarm #%d\n", count);
 }
