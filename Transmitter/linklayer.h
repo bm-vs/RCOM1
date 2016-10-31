@@ -26,5 +26,6 @@ int llopen(char *nserial, struct termios *oldtio);
 int llwrite();
 int llclose(int fd, struct termios *oldtio);
 void createControlPacket(char* packet, char* type);
+void createDataPacket();
 int readPacket(int fd);
 void answer();

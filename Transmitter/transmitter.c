@@ -28,25 +28,46 @@ int main(int argc, char *argv[]) {
 	char *filename = basename(argv[1]);
 
 	// Open serial port
+	/*
 	struct termios oldtio;
 	int serial = llopen(argv[2], &oldtio);
 	if (serial == -1) {
 		printf("Connection timeout\n");
 		return 4;
 	}
+	*/
 
 	// Write opening control packet
-	write_control(fd, filename, START);
+	
+	char *data;/*
+	data = write_control(fd, filename, START);
+	if (data == NULL) {
+		return 5;
+	}
+	*/
+	// llwrite(data);
 
 	// Write data packets
-	/*
-	while (!EOF) {
-
-	}*/
+	char buff[N_BYTES_READ];	
+	int number = 0;
+	while (read(fd, buff, N_BYTES_READ) != 0) {
+		data = write_data(number, buff);
+		//llwrite(data)
+		memset(buff, 0, sizeof buff);
+		number = (number+1) % 256;
+	}
 
 	// Write closing control packet
-	write_control(fd, filename, END);
+	/*
+	data = write_control(fd, filename, END);
+	if (data == NULL) {
+		return 5;
+	}
+	*/
+	// llwrite(data);
 
 	// Close serial port
+	/*
 	llclose(serial, &oldtio);
+	*/
 }

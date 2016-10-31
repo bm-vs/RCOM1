@@ -8,7 +8,13 @@
 
 #define FILE_SIZE_ID 0x00
 #define FILE_NAME_ID 0x01
+#define DATA 0x01
 #define START 0x02
 #define END 0x03
+#define N_BYTES_READ 30
+#define CONTROL_SIZE 256
+#define DATA_SIZE 256
 
-int write_control(int fd, char *filename, int control_field);
+
+void* write_control(int fd, char *filename, int control_field);
+void* write_data(int number, char *buff);
