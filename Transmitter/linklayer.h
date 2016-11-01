@@ -20,12 +20,13 @@
 #define SETUP 0x03
 #define UNACK 0x07
 #define DISC 0x0B
+#define PACKET_SIZE 256
 
 
 int llopen(char *nserial, struct termios *oldtio);
-int llwrite();
+int llwrite(int fd, char *data, int size);
 int llclose(int fd, struct termios *oldtio);
 void createControlPacket(char* packet, char* type);
-void createDataPacket();
+int createDataPacket(char *packet, char *data, int size);
 int readPacket(int fd);
 void answer();

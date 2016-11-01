@@ -4,6 +4,7 @@
 
 volatile int STOP=FALSE;
 int count = 0, flag = 0;
+int ns = 0;
 
 int llopen(char *nserial, struct termios *oldtio)
 {
@@ -41,7 +42,7 @@ int llopen(char *nserial, struct termios *oldtio)
 
     // Send SET and wait for UA
     (void) signal(SIGALRM, answer); 
-    char packet[255];
+    char packet[PACKET_SIZE];
     int packet_size = 5;
 
     createControlPacket(packet, "SET");
@@ -61,17 +62,35 @@ int llopen(char *nserial, struct termios *oldtio)
          return -1;	
     }
 
+    count = 0; flag = 0;
     return fd;
 }
 
 
-int llwrite(int fd) {
-	
+int llwrite(int fd, char *data, int size) {
+    // Send SET and wait for UA
+    (void) signal(SIGALRM, answer); 
+    char packet[PACKET_SIZE];
 
+    int packet_size = createDataPacket(packet, data, size);
+/*
+    while(count < 3) {
+	write(fd, packet, packet_size);
+	flag = 0;
+	alarm(3);
 
+	// receive
+	if (readPacket(fd) == 0) {
+		break;
+	}
+    }
 
+    if (count == 3) {
+         return -1;	
+    }
 
-
+    count = 0; flag = 0;
+    return fd;*/
 }
 
 
@@ -119,6 +138,7 @@ int llclose(int fd, struct termios *oldtio) {
 		}
 	
 	    	close(fd);
+		count = 0; flag = 0;
 
 		return 0;
 	}
@@ -144,6 +164,44 @@ void createControlPacket(char* packet, char* type) {
 
 	packet[3] = packet[1]^packet[2];
 	packet[4] = FLAG;
+}
+
+int createDataPacket(char *packet, char *data, int size) {
+	int i;
+	int pos = 0;
+	packet[pos++] = FLAG;
+	packet[pos++] = TXSTART;
+	if (ns == 0) {
+		packet[pos++] = 0x00;
+	}
+	else {
+		packet[pos++] = 0x40;
+	}	
+	packet[pos++] = packet[1]^packet[2];
+	
+	int xor;
+	for (i = 0; i < size; i++) {
+		packet[pos++] = data[i];
+
+		if (i == 0) {
+			xor = data[i];
+		}
+		else {
+			xor = xor^data[i];
+		}
+	}
+	
+	packet[pos++] = xor;
+	packet[pos++] = FLAG;
+
+	/*
+	for (i = 0; i < pos; i++) {
+		printf("%x ", packet[i]);
+	}
+	printf("\n");
+	*/
+
+	return pos;
 }
 
 

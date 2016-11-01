@@ -1,12 +1,12 @@
 #include "datalayer.h"
 
-void* write_control(int fd, char *filename, int control_field) {
+int write_control(int fd, char *data, char *filename, int control_field) {
 	int i;
 
 	struct stat fileStat;	
 	if (fstat(fd, &fileStat) == -1) {
 		perror("fstat");
-		return NULL;
+		return -1;
 	}
 
 	// File Size
@@ -30,7 +30,6 @@ void* write_control(int fd, char *filename, int control_field) {
 	
 	int pos = 0;
 	// Create Control Data
-	unsigned char *data = malloc(CONTROL_SIZE);
 	data[pos++] = control_field;
 	data[pos++] = FILE_SIZE_ID;
 	data[pos++] = l1;
@@ -51,16 +50,15 @@ void* write_control(int fd, char *filename, int control_field) {
 	printf("\n");
 */
 
-	return data;
+	return pos;
 }
 
 
 
-void* write_data(int number, char *buff) {
+int write_data(int number, char *data, char *buff) {
 	int i;
 	int pos = 0;
 	int n_bytes = strlen(buff);
-	unsigned char *data = malloc(DATA_SIZE);
 	data[pos++] = DATA;
 	data[pos++] = number;
 	data[pos++] = n_bytes / 256;
@@ -69,6 +67,7 @@ void* write_data(int number, char *buff) {
 		data[pos++] = buff[i];
 	}
 
+	/*
 	for (i = 0; i < pos; i++) {
 		if (i > 3) {
 			printf("%c", data[i]);
@@ -78,6 +77,9 @@ void* write_data(int number, char *buff) {
 		}
 	}
 	printf("\n");
+	*/
+
+	return pos;
 }
 
 
