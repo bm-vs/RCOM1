@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 	// Write data packets
 	char buff[N_BYTES_READ];	
 	int number = 0;
-	while (read(fd, buff, N_BYTES_READ) != 0) {
+	while (read(fd, buff, N_BYTES_READ) != 0) {	
 		size = write_data(number, data, buff);
 		if (llwrite(serial, data, size) == -1) {
 			printf("Connection timeout\n");
@@ -63,7 +63,6 @@ int main(int argc, char *argv[]) {
 		memset(buff, 0, sizeof buff);
 		number = (number+1) % 256;
 	}
-
 
 	// Write closing control packet
 	size = write_control(fd, data, filename, END);

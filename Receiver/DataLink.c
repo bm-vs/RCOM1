@@ -123,16 +123,17 @@ char* buffer;
 }
 
 int write_file(int *file, char* buffer, int length){
-	int res,k,n;
+  int res,k,n,i;
 	
 	switch(buffer[0]){
 	case 1:
 		 k = 256*buffer[2]+buffer[3];
-		
-		int i;			
+
 		for(i = 0;i < k;i++ ){
+		//	printf("%x ", buffer[i+4]);
 			write(*file, &buffer[i+4], 1);
 		}
+			//printf("\n");
 		return 1;
 		
 	case 2:
@@ -167,6 +168,7 @@ int llread(int fd, char* buffer, int *file){
 	do{
 			stuffed = receiveTramaI(fd, frame);
 			//printf("%d - ", stuffed);
+			
 			length = destuffing(frame, stuffed, frame);
 			//printf("%d\n", length);
 			vbcc2 = 0x00;

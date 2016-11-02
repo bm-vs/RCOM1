@@ -65,14 +65,6 @@ int llopen(char *nserial, struct termios *oldtio)
 		}
     }
 
-	/*
-	printf("Start Packet\n");
-	for (i = 0; i < packet_size; i++) {
-		printf("%x ", packet[i]);
-	}
-	printf("\n");
-	*/
-
 	alarm(0);
 
     if (count == 3) {
@@ -114,15 +106,6 @@ int llwrite(int fd, char *data, int size) {
     }
 
 	alarm(0);
-
-	/*
-	int i = 0;
-	for (i = 0; i < packet_size; i++) {
-		printf("%x ", packet[i]);
-	}
-	printf("\n");
-	*/
-
 
     if (count == 3) {
          return -1;	
@@ -171,14 +154,6 @@ int llclose(int fd, struct termios *oldtio) {
 	else {
 		createControlPacket(packet, data, "UA");
 		write(fd, packet, packet_size);
-
-		/*
-		int i = 0;
-		printf("Ending Packet\n");
-		for (i = 0; i < packet_size; i++) {
-			printf("%x ", packet[i]);
-		}
-		printf("\n");*/
 	
 		if (tcsetattr(fd,TCSANOW, oldtio) == -1) {
 		perror("tcsetattr");

@@ -58,12 +58,12 @@ int write_control(int fd, char *data, char *filename, int control_field) {
 int write_data(int number, char *data, char *buff) {
 	int i;
 	int pos = 0;
-	int n_bytes = strlen(buff);
 	data[pos++] = DATA;
 	data[pos++] = number;
-	data[pos++] = n_bytes / 256;
-	data[pos++] = n_bytes % 256;
-	for (i = 0; i < n_bytes; i++) {
+	data[pos++] = N_BYTES_READ / 256;
+	data[pos++] = N_BYTES_READ % 256;
+	
+	for (i = 0; i < N_BYTES_READ; i++) {
 		data[pos++] = buff[i];
 	}
 
