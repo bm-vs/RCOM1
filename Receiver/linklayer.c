@@ -1,41 +1,5 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
 
-
-#define BAUDRATE B9600
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
-//states
-#define START -1
-#define FLAG_RCV 0
-#define A_RCV 1
-#define C_RCV 2
-#define BCC_RCV 3
-#define STOP_ST 4
-//frames
-#define FLAG          0x7E
-#define A_SENDER      0x03
-#define A_RECEIVER    0x01
-#define C_SET         0x03
-#define C_DISC        0x0B
-#define C_UA          0x07
-#define C_RR_0        0x05
-#define C_RR_1        0x85
-#define C_REJ_0       0x01
-#define C_REJ_1       0x81
-#define ESCAPE        0x7D
-#define STUFF_BYTE    0x20
-
-#define FALSE 0
-#define TRUE 1
+#include "linklayer.h"
 
 	
 const unsigned char DISC[] = {FLAG, A_RECEIVER, C_DISC, A_RECEIVER^C_DISC, FLAG};
@@ -45,118 +9,6 @@ const unsigned char REJ_0_FRAME[] = {FLAG, A_RECEIVER, C_REJ_0, A_RECEIVER^C_REJ
 const unsigned char REJ_1_FRAME[] = {FLAG, A_RECEIVER, C_REJ_1, A_RECEIVER^C_REJ_1, FLAG};
 
 volatile int STOP=FALSE;
-
-
-int main(int argc, char** argv)
-{
-    int fd,c, res;
-    struct termios oldtio,newtio;
-    char rstring[255];
-    int nrstring;
-    nrstring = 0;
-char* buffer;
-
-    if ( (argc < 2) || 
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
-  	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
-      printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
-      exit(1);
-    }
-
-
-  /*
-    Open serial port device for reading and writing and not as controlling tty
-    because we don't want to get killed if linenoise sends CTRL-C.
-  */
-  
-    
-    fd = open(argv[1], O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(argv[1]); exit(-1); }
-
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
-      perror("tcgetattr");
-      exit(-1);
-    }
-
-
-
-    bzero(&newtio, sizeof(newtio));
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
-    newtio.c_iflag = IGNPAR;
-    newtio.c_oflag = 0;
-
-    /* set input mode (non-canonical, no echo,...) */
-    newtio.c_lflag = 0;
-
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
-
-
-
-  /* 
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) próximo(s) caracter(es)
-  */
-
-
-
-    tcflush(fd, TCIOFLUSH);
-
-    if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
-
-	int file;
-
-	llopen(fd);
-
-	while(llread(fd, buffer, &file) != 0){
-	
-	}
-	llclose(fd);
-	
-
-    tcsetattr(fd,TCSANOW,&oldtio);
-    close(fd);
-    return 0;
-}
-
-int write_file(int *file, char* buffer, int length){
-  int res,k,n,i;
-	
-	switch(buffer[0]){
-	case 1:
-		 k = 256*buffer[2]+buffer[3];
-
-		for(i = 0;i < k;i++ ){
-		//	printf("%x ", buffer[i+4]);
-			write(*file, &buffer[i+4], 1);
-		}
-			//printf("\n");
-		return 1;
-		
-	case 2:
-		if (buffer[n] == 0){
-		  n++;
-		  n += buffer[n];
-		  n++;
-		  if (buffer[n] == 1){
-		    n++;
-		    int filenameSize = buffer[n];
-		    n++;
-		    char filename[256];
-		    memcpy(&filename, &buffer[n], filenameSize);
-		    *file = open(filename, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0666);
-		  }
-		}
-		return 2;
-	case 3:
-		close(*file);
-		return 3;	
-	}
-	
-}
 
 int llread(int fd, char* buffer, int *file){
 	int ok, stuffed, length, error = FALSE, totalsize, i, counter;
@@ -173,8 +25,8 @@ int llread(int fd, char* buffer, int *file){
 			//printf("%d\n", length);
 			vbcc2 = 0x00;
 
-			 S = (R + 1) % 2;
-			/*if(frame[2] >> 7 == R){
+			/*S = (R + 1) % 2;
+			if(frame[2] >> 6 == R){
 				error = FALSE;
 				if(frame[2] == 0x40){
 					if(write_file(file, buffer,counter) == 3)
@@ -186,12 +38,12 @@ int llread(int fd, char* buffer, int *file){
 					totalsize = 0;
 				write(fd,RR_1_FRAME,5);
 				}
-				tempr = 1;
+				tempr = 0;
 			}*/
 			if(frame[0] == FLAG &&
 					frame[length-1] == FLAG &&
 					frame[1] == A_SENDER &&
-					//(frame[2] ==  S << 6) &&
+					//frame[2] ==  S << 6 &&
 					frame[3] == (frame[1]^frame[2])){
 					counter = 0;
 				for(i = 4;i < length-2;i++ ){
@@ -203,14 +55,15 @@ int llread(int fd, char* buffer, int *file){
 				error = TRUE;
 			 else {			
 				error = FALSE;
-				}
-				//tempr = 0;		
+				tempr = 1;
+				}		
 			}
 			else error = TRUE;	
 			if(error == FALSE){
-				/*if(tempr == 0)
+				/*if(tempr == 1){
 					R = (R + 1) % 2;*/
 				ok = TRUE;
+				//}
 				if(frame[2] == 0x40){
 					if(write_file(file, buffer,counter) == 3)
 						totalsize = 0;						
@@ -536,16 +389,4 @@ int destuffing(char* buf, int arraySize, char* dest){
         return size;
 }
 
-int stuffing(char* buf, int arraySize, char* dest){
-  int i, size = 0;
-  
-  for(i=0;i< arraySize;i++){
-    if(buf[i]==FLAG||buf[i]==ESCAPE){
-      dest[size++] = ESCAPE;
-	  dest[size++] = buf[i] ^ STUFF_BYTE;
-    }
-	else dest[size++] = buf[i];
-  }
-  return size;
-}
 
