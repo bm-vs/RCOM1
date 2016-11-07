@@ -1,10 +1,11 @@
-/*Non-Canonical Input Processing*/
+/* Non-Canonical Input Processing */
 
 #include "linklayer.h"
 
 volatile int STOP=FALSE;
 int count = 0, flag = 0;
 int ns = 0;
+int packet_number = 0;
 
 int llopen(char *nserial, struct termios *oldtio)
 {
@@ -28,7 +29,7 @@ int llopen(char *nserial, struct termios *oldtio)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
+    newtio.c_cc[VTIME]    = 10;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
 
 
@@ -55,12 +56,14 @@ int llopen(char *nserial, struct termios *oldtio)
 */
 
     while(count < 3) {
+		printf("Sent: SET\n");
 		write(fd, packet, packet_size);
 		flag = 0;
 		alarm(3);
 
 		// receive UA
 		if (readPacket(fd) == 1) {
+			printf("Received: UA\n");
 			break;
 		}
     }
@@ -81,31 +84,46 @@ int llwrite(int fd, char *data, int size) {
     char packet[PACKET_SIZE];
 
     int packet_size = createDataPacket(packet, data, size);
+	packet_number++;	
 
     while(count < 3) {
-    	//printf("%d\n", packet_size);
+    	printf("Sent: %d - ", packet_number); /*
+		int a;
+		for (a = 0; a < packet_size; a++) {
+			printf("%x ", packet[a]);
+		}
+		printf("\n");*/
 		write(fd, packet, packet_size);
 		flag = 0;
 		alarm(3);
 
 		// receive RR -> continue
 		int r = readPacket(fd);
-		/*
+		
 		if (r == 2) {
 			ns = (ns+1) % 2;
+			printf("Received: RR_0\n");
+			break;
+		}
+		if (r == 5) {
+			ns = (ns+1) % 2;
+			printf("Received: RR_1\n");
 			break;
 		}
 		// receive REJ -> retransmit
 		else if (r == 3) {
 			count = 0; flag = 0;
-		}*/
+			printf("Received: REJ\n");
+		}
+
+/*
 		if (r == 1) {
 			break;
-		}
+		}*/
 
     }
 
-	alarm(0);
+    alarm(0);
 
     if (count == 3) {
          return -1;	
@@ -128,13 +146,15 @@ int llclose(int fd, struct termios *oldtio) {
 	createControlPacket(packet, data, "DISC");
 
 	while(count < 3) {
+		printf("Sent: DISC\n");
 		write(fd, packet, packet_size);
 		flag = 0;
 		alarm(3);
 
 		// receive
-		//if (readPacket(fd) == 4) {
-		if (readPacket(fd) == 1) {
+		if (readPacket(fd) == 4) {
+			printf("Received: DISC\n");
+		//if (readPacket(fd) == 1) {
 			break;
 		}
 	}
@@ -153,6 +173,7 @@ int llclose(int fd, struct termios *oldtio) {
 	// Send UA and close
 	else {
 		createControlPacket(packet, data, "UA");
+		printf("Sent: UA\n");
 		write(fd, packet, packet_size);
 	
 		if (tcsetattr(fd,TCSANOW, oldtio) == -1) {
@@ -160,7 +181,7 @@ int llclose(int fd, struct termios *oldtio) {
 		exit(-1);
 		}
 	
-	    close(fd);
+	        close(fd);
 		count = 0; flag = 0;
 
 		return 0;
@@ -272,13 +293,16 @@ int readPacket(int fd){
 		
 							pack[i] = buf[0];			
 							STOP = TRUE;
-							return 1;
-/*
+							//return 1;
+
 							if (pack[2] == UNACK) {
 								return 1;
 							}							
-							else if (pack[2] == RR_0 || pack[2] == RR_1) {
+							else if (pack[2] == RR_0) {
 								return 2;
+							}
+							else if(pack[2] == RR_1) {
+								return 5;
 							}
 							else if (pack[2] == REJ_0 || pack[2] == REJ_1) {
 								return 3;
@@ -286,7 +310,6 @@ int readPacket(int fd){
 							else if (pack[2] == DISC) {
 								return 4;
 							}
-*/
 					}					
 				}
 			}											

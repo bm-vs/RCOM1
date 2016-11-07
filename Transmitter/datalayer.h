@@ -16,4 +16,4 @@
 
 
 int write_control(int fd, char *data, char *filename, int control_field);
-int write_data(int number, char *data, char *buff);
+int write_data(int number, char *data, char *buff, int n_bytes);

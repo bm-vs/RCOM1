@@ -6,6 +6,7 @@ int write_file(int *file, char* buffer, int length){
 	switch(buffer[0]){
 	case 1:
 		 k = 256*buffer[2]+buffer[3];
+		//printf("%d\n", k);
 
 		for(i = 0;i < k;i++ ){
 		  	//printf("%x ", buffer[i+4]);

@@ -9,23 +9,32 @@ const unsigned char REJ_0_FRAME[] = {FLAG, A_RECEIVER, C_REJ_0, A_RECEIVER^C_REJ
 const unsigned char REJ_1_FRAME[] = {FLAG, A_RECEIVER, C_REJ_1, A_RECEIVER^C_REJ_1, FLAG};
 
 volatile int STOP=FALSE;
+int packet_number = 1;
+char previous = 0xFF;
 
 int llread(int fd, char* buffer, int *file){
-	int ok, stuffed, length, error = FALSE, totalsize, i, counter;
+	int ok, stuffed, length, error = FALSE, totalsize = 1, i, counter;
 	unsigned char vbcc2, R = 1,S = 0;
 	char frame[512];
-	int tempr = 0;
-	
+	int tempr = 0;	
 	
 	do{
+			printf("Received: %d - ", packet_number);
 			stuffed = receiveTramaI(fd, frame);
 			//printf("%d - ", stuffed);
-			
+			/*
+			int a;
+			for (a = 0; a < stuffed; a++) {
+				printf("%x ", frame[a]);
+			}
+			printf("\n");
+			*/
 			length = destuffing(frame, stuffed, frame);
 			//printf("%d\n", length);
 			vbcc2 = 0x00;
-
-			/*S = (R + 1) % 2;
+			
+			/*
+			S = (R + 1) % 2;
 			if(frame[2] >> 6 == R){
 				error = FALSE;
 				if(frame[2] == 0x40){
@@ -64,24 +73,48 @@ int llread(int fd, char* buffer, int *file){
 					R = (R + 1) % 2;*/
 				ok = TRUE;
 				//}
-				if(frame[2] == 0x40){
-					if(write_file(file, buffer,counter) == 3)
-						totalsize = 0;						
-					write(fd,RR_0_FRAME,5);
+
+				if (frame[2] == previous) {
+					printf("Duplicate - ");
+
+					if (frame[2] == 0x40) {
+						write(fd,RR_0_FRAME,5);
+						printf("Sent: RR_0\n");
+					}
+					else {
+						write(fd,RR_1_FRAME,5);
+						printf("Sent: RR_1\n");
+					}
 				}
 				else {
-				if(write_file(file, buffer,counter) == 3)
-					totalsize = 0;
-				write(fd,RR_1_FRAME,5);
+					if(frame[2] == 0x40){
+					if(write_file(file, buffer,counter) == 3)
+						totalsize = 0;
+
+					packet_number++;
+					previous = frame[2];				
+					write(fd,RR_0_FRAME,5);
+					printf("Sent: RR_0\n");
+					}
+					else {
+						if(write_file(file, buffer,counter) == 3)
+							totalsize = 0;
+
+						packet_number++;
+						previous = frame[2];
+						write(fd,RR_1_FRAME,5);
+						printf("Sent: RR_1\n");
+					}
+					if(totalsize != 0)				
+					totalsize = 1;
 				}
-				if(totalsize != 0)				
-				totalsize += length;
 			}
 			else{
 				ok = FALSE;
 				if(frame[2] == 0x40)
 					write(fd,REJ_0_FRAME,5);
 				else write(fd,REJ_1_FRAME,5);
+				printf("Sent: REJ\n");
 			}
 	} while(!ok);
 
@@ -94,10 +127,14 @@ int llclose(int fd){
 	
 	if((res =receiveDISC(fd, frame)) == -1)
 		return -1;
-	
-	else write(fd,DISC,5);
-	
+	else {
+		printf("Received: DISC\n");
+		write(fd,DISC,5);
+		printf("Sent: DISC\n");
+	}	
+
 	readUA(fd);
+	printf("Received: UA\n");
 	
 }
 
@@ -306,12 +343,15 @@ int readUA(int fd){
 int llopen(int fd){
 	
 	if(!readPack(fd)){
-	if(sendUA(fd) == 5){
-		return 0;
-
-}	
+		printf("Received: SET\n");		
+		
+		if(sendUA(fd) == 5){
+			printf("Sent: UA\n");
+			return 0;
+		}	
 	}
-return -1;
+
+	return -1;
 }
 int sendUA(int fd){
 	unsigned char UA[5] = {0x7E,0x03,0x07,0x01,0x7E};

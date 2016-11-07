@@ -54,8 +54,15 @@ int main(int argc, char *argv[]) {
 	// Write data packets
 	char buff[N_BYTES_READ];	
 	int number = 0;
-	while (read(fd, buff, N_BYTES_READ) != 0) {	
-		size = write_data(number, data, buff);
+	while (1) {
+		int r = read(fd, buff, N_BYTES_READ);
+		if (r == 0) {
+			break;
+		}
+
+		//printf("%d\n", r);
+
+		size = write_data(number, data, buff, r);
 		if (llwrite(serial, data, size) == -1) {
 			printf("Connection timeout\n");
 			return 4;
