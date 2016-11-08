@@ -11,7 +11,7 @@ const unsigned char REJ_1_FRAME[] = {FLAG, A_RECEIVER, C_REJ_1, A_RECEIVER^C_REJ
 volatile int STOP=FALSE;
 int packet_number = 1;
 char previous = 0xFF;
-
+int gen_error = 0;
 
 int llopen(int fd){
 	char frame[5];
@@ -48,11 +48,14 @@ int llread(int fd, char* buffer, int *file){
 			length = destuffing(frame, stuffed, frame);
 			//printf("%d\n", length);
 
+			if(gen_error == 1)
+				generateError(frame);
 			vbcc2 = 0x00;			
 
 			if(frame[0] == FLAG &&
 					frame[length-1] == FLAG &&
 					frame[1] == A_SENDER &&
+					(frame[2] == 0x40 || frame[2] == 0x00) &&
 					frame[3] == (frame[1]^frame[2])){
 				
 				counter = 0;
@@ -234,6 +237,19 @@ int destuffing(char* buf, int arraySize, char* dest){
         }
 
         return size;
+}
+
+void generateError(char *frame){
+	
+	int r = (rand() % 10) + 1;
+
+	if(r % 2)
+		frame[9] = 0xAA;
+	
+}
+
+void updateError(){
+	gen_error = 1;
 }
 
 

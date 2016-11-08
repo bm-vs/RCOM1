@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <time.h>
 
 
 #define BAUDRATE B9600
@@ -48,3 +48,5 @@ int llopen(int fd);
 int sendUA(int fd);
 int readPack(int fd);
 int destuffing(char* buf, int arraySize, char* dest);
+void generateError(char *frame);
+void updateError();

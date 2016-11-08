@@ -36,3 +36,4 @@ int write_file(int *file, char* buffer, int length){
 	}
 	
 }
+

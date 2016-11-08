@@ -17,6 +17,12 @@ char* buffer;
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
     }
+	
+	srand(time(NULL));	
+
+	if(argc == 3){
+		updateError();	
+	}
 
 
   /*
@@ -70,6 +76,8 @@ char* buffer;
 	
 	}
 	llclose(fd);
+
+	
 	
 	printStats();
 
