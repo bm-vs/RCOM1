@@ -3,17 +3,58 @@
 #include "datalayer.h"
 #include "linklayer.h"
 
+
+int n_bytes_read = 30;
+
 int main(int argc, char *argv[]) {
 	// Check arguments
-	if (argc != 3) {
-		printf("Usage:\n");
+	if (argc != 3 && argc != 6) {
+		printf("Usages:\n");
 		printf("  transmitter <file_name> <n_serial_port>\n");
-		printf("  Ex.: transmitter penguin.gif /dev/ttyS1\n");
+		printf("  transmitter <file_name> <n_serial_port> <n_info_bytes_per_frame> <n_max_retransmissions> <timeout_interval>\n");	
 		return 1;
 	}
 	if ((strcmp("/dev/ttyS0", argv[2])!=0) && (strcmp("/dev/ttyS1", argv[2])!=0)) {
-		printf("n_serial_port as to be: /dev/ttyS0 or /dev/ttyS1\n");
+		printf("n_serial_port has to be: /dev/ttyS0 or /dev/ttyS1\n");
 		return 2;
+	}
+
+	if (argc == 6) {
+		// n_bytes_per_frame
+		if (strcmp("default", argv[3]) != 0) {
+			int n = atoi(argv[3]);
+
+			if (n == 0 || n >= 128) {
+				printf("n_info_bytes_per_frame has to be between 1 and 127\n");
+				return 2;
+			}
+
+			n_bytes_read = n;
+		}
+
+		// n_max_retransmissions
+		if (strcmp("default", argv[4]) != 0) {
+			int n = atoi(argv[4]);
+
+			if (n == 0) {
+				printf("n_max_retransmissions has be a positive integer\n");
+				return 2;
+			}
+
+			setNRetransmissions(n);
+		}
+
+		// timeout_interval
+		if (strcmp("default", argv[5]) != 0) {
+			int n = atoi(argv[5]);
+
+			if (n == 0) {
+				printf("timeout_interval has be a positive integer\n");
+				return 2;
+			}
+
+			setTimeout(n);
+		}
 	}
 
 
@@ -52,10 +93,10 @@ int main(int argc, char *argv[]) {
 
 
 	// Write data packets
-	char buff[N_BYTES_READ];	
+	char buff[n_bytes_read];	
 	int number = 0;
 	while (1) {
-		int r = read(fd, buff, N_BYTES_READ);
+		int r = read(fd, buff, n_bytes_read);
 		if (r == 0) {
 			break;
 		}
@@ -86,4 +127,6 @@ int main(int argc, char *argv[]) {
 
 	// Close serial port
 	llclose(serial, &oldtio);
+
+	printStats();
 }

@@ -6,6 +6,10 @@ volatile int STOP=FALSE;
 int count = 0, flag = 0;
 int ns = 0;
 int packet_number = 0;
+int retransmissions = 3;
+int timeout = 3;
+int resend = 0;
+
 
 int llopen(char *nserial, struct termios *oldtio)
 {
@@ -55,22 +59,24 @@ int llopen(char *nserial, struct termios *oldtio)
 	}
 */
 
-    while(count < 3) {
+    while(count < retransmissions) {
 		printf("Sent: SET\n");
 		write(fd, packet, packet_size);
 		flag = 0;
-		alarm(3);
+		alarm(timeout);
 
 		// receive UA
 		if (readPacket(fd) == 1) {
 			printf("Received: UA\n");
 			break;
 		}
+
+		
     }
 
 	alarm(0);
 
-    if (count == 3) {
+    if (count == retransmissions) {
          return -1;	
     }
 
@@ -86,7 +92,7 @@ int llwrite(int fd, char *data, int size) {
     int packet_size = createDataPacket(packet, data, size);
 	packet_number++;	
 
-    while(count < 3) {
+    while(count < retransmissions) {
     	printf("Sent: %d - ", packet_number); /*
 		int a;
 		for (a = 0; a < packet_size; a++) {
@@ -94,8 +100,14 @@ int llwrite(int fd, char *data, int size) {
 		}
 		printf("\n");*/
 		write(fd, packet, packet_size);
+
+		incNFramesSent();
+		if (resend == 1) {
+			incNFramesResent();
+		}
+
 		flag = 0;
-		alarm(3);
+		alarm(timeout);
 
 		// receive RR -> continue
 		int r = readPacket(fd);
@@ -105,7 +117,7 @@ int llwrite(int fd, char *data, int size) {
 			printf("Received: RR_0\n");
 			break;
 		}
-		if (r == 5) {
+		else if (r == 5) {
 			ns = (ns+1) % 2;
 			printf("Received: RR_1\n");
 			break;
@@ -113,19 +125,19 @@ int llwrite(int fd, char *data, int size) {
 		// receive REJ -> retransmit
 		else if (r == 3) {
 			count = 0; flag = 0;
+			incNRejReceived();
 			printf("Received: REJ\n");
 		}
 
-/*
-		if (r == 1) {
-			break;
-		}*/
-
+		incNTimeouts();
+		resend = 1;
     }
+
+	resend = 0;
 
     alarm(0);
 
-    if (count == 3) {
+    if (count == retransmissions) {
          return -1;	
     }
 
@@ -145,11 +157,11 @@ int llclose(int fd, struct termios *oldtio) {
 
 	createControlPacket(packet, data, "DISC");
 
-	while(count < 3) {
+	while(count < retransmissions) {
 		printf("Sent: DISC\n");
 		write(fd, packet, packet_size);
 		flag = 0;
-		alarm(3);
+		alarm(timeout);
 
 		// receive
 		if (readPacket(fd) == 4) {
@@ -160,7 +172,7 @@ int llclose(int fd, struct termios *oldtio) {
 	}
 
 	// Connection timeout
-	if (count == 3) {
+	if (count == retransmissions) {
 		if (tcsetattr(fd,TCSANOW, oldtio) == -1) {
 		perror("tcsetattr");
 		exit(-1);
@@ -342,4 +354,12 @@ void answer() {
 	flag = 1;
 	count++;
 	printf("Alarm #%d\n", count);
+}
+
+void setNRetransmissions(int n) {
+	retransmissions = n;
+}
+
+void setTimeout(int n) {
+	timeout = n;
 }

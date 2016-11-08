@@ -11,7 +11,6 @@
 #define DATA 0x01
 #define START 0x02
 #define END 0x03
-#define N_BYTES_READ 30
 #define DATA_SIZE 256
 
 

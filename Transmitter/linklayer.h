@@ -8,6 +8,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <string.h>
+#include "stats.h"
 
 #define BAUDRATE B9600
 #define MODEMDEVICE "/dev/ttyS1"
@@ -26,7 +27,6 @@
 #define REJ_0 0x01
 #define REJ_1 0x81
 
-
 int llopen(char *nserial, struct termios *oldtio);
 int llwrite(int fd, char *data, int size);
 int llclose(int fd, struct termios *oldtio);
@@ -35,3 +35,5 @@ int createDataPacket(char *packet, char *data, int size);
 int readPacket(int fd);
 int stuffing(char* buf, int arraySize, char* dest);
 void answer();
+void setNRetransmissions(int n);
+void setTimeout(int n);

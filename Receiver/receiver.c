@@ -1,5 +1,6 @@
 #include "linklayer.h"
 #include "datalayer.h"
+#include "stats.h"
 
 int main(int argc, char** argv)
 {
@@ -70,6 +71,7 @@ char* buffer;
 	}
 	llclose(fd);
 	
+	printStats();
 
     tcsetattr(fd,TCSANOW,&oldtio);
     close(fd);
