@@ -8,3 +8,5 @@
 
 
 int write_file(int *file, char* buffer, int length);
+int getCPsize();
+char* getFileName();

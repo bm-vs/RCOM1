@@ -11,9 +11,11 @@ int write_control(int fd, char *data, char *filename, int control_field) {
 
 	// File Size
 	int file_size = fileStat.st_size;
+
 	unsigned char fsize[256];
 	sprintf(fsize, "%x", file_size);
 	int l1 = strlen(fsize);
+
 
 	for (i = 0; i < l1; i++) {
 		if (fsize[i] >= 48 && fsize[i] <= 57) {

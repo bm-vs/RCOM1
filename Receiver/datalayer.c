@@ -1,7 +1,10 @@
 #include "datalayer.h"
+	
+int size = 0;
+static char filename[256];
 
 int write_file(int *file, char* buffer, int length){
-  int res,k,n,i;
+	int res,k,n = 1,i;	
 	
 	switch(buffer[0]){
 	case 1:
@@ -18,13 +21,17 @@ int write_file(int *file, char* buffer, int length){
 	case 2:
 		if (buffer[n] == 0){
 		  n++;
+	
+		  for (i = 1; i <= buffer[n]; i++) {
+		  	size = (size*16+buffer[n+i]);
+		  }
+
 		  n += buffer[n];
-		  n++;
+		n++;
 		  if (buffer[n] == 1){
 		    n++;
 		    int filenameSize = buffer[n];
 		    n++;
-		    char filename[256];
 		    memcpy(&filename, &buffer[n], filenameSize);
 		    *file = open(filename, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0666);
 		  }
@@ -37,3 +44,10 @@ int write_file(int *file, char* buffer, int length){
 	
 }
 
+int getCPsize(){
+	return size;
+}
+
+char* getFileName(){
+	return filename;
+}

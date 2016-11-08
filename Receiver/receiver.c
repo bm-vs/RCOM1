@@ -75,13 +75,26 @@ char* buffer;
 	while(llread(fd, buffer, &file) != 0){
 	
 	}
+
+   	close(file);
+	
+
 	llclose(fd);
 
-	
-	
 	printStats();
+	file = open(getFileName(), O_RDONLY);
+	struct stat fileStat;
+	if(fstat(file, &fileStat) == -1){
+		perror("fstat");
+		return -1;
+	}
+
+	int final_size = fileStat.st_size;
+
+	printf("Received Size:%d bytes\n", final_size);
+	printf("Control packet size:%d bytes \n", getCPsize());
 
     tcsetattr(fd,TCSANOW,&oldtio);
-    close(fd);
+	close(file);
     return 0;
 }
